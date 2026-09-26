@@ -34,6 +34,18 @@ func New(c *catalog.Catalog) *mcp.Server {
 				URI:      widgetResource.URI,
 				MIMEType: tools.WidgetMIMEType,
 				Text:     widgetHTML,
+				// MCP Apps resource _meta: hosts (notably ChatGPT) require the
+				// serving domain to frame the resource, and the CSP entry
+				// allows the widget's product images through.
+				Meta: mcp.Meta{
+					"ui": map[string]any{
+						"prefersBorder": true,
+						"domain":        tools.WidgetDomain,
+						"csp": map[string]any{
+							"resourceDomains": []string{"https://images.demo-outdoor.example"},
+						},
+					},
+				},
 			}},
 		}, nil
 	})

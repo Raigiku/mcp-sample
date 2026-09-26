@@ -19,6 +19,11 @@ const WidgetMIMEType = "text/html;profile=mcp-app"
 // rather than mutating this one.
 const WidgetResourceURI = "ui://Raigiku/mcp-sample/products-v1.html"
 
+// WidgetDomain is the HTTPS host serving the widget (the current ngrok tunnel).
+// Hosts require it in the resource's _meta so they may frame the resource.
+// It changes whenever the tunnel restarts — update it here.
+const WidgetDomain = "https://infundibulate-lakiesha-prepigmental.ngrok-free.dev"
+
 // Invocation progress strings the host shows around the tool call (pizzaz
 // pattern: "openai/toolInvocation/invoking" while the tool runs, "invoked" when
 // its result arrives). Exported so server.go and tests share one copy.
@@ -27,8 +32,9 @@ const (
 	WidgetInvoked  = "Products ready."
 )
 
-// widgetHTML is the widget document: a display-only page that listens for the
-// host's ui/notifications/tool-result postMessage and renders product cards.
+// widgetHTML is the widget document: a display-only page that initiates the
+// MCP Apps handshake (ui/initialize) on load and then listens for the host's
+// ui/notifications/tool-result postMessage to render product cards.
 // Vanilla, no build step, no external requests except the product images.
 const widgetHTML = `<!DOCTYPE html>
 <html>
@@ -178,28 +184,81 @@ const widgetHTML = `<!DOCTYPE html>
     root.replaceChildren(...products.map(card));
   };
 
+  // --- MCP Apps messaging layer ---
+  // The iframe must initiate the handshake: it sends a ui/initialize JSON-RPC
+  // request on load, and only then do compatible hosts deliver tool results.
+
+  const pending = new Map(); // json-rpc id -> {resolve, reject}
+  let nextId = 1;
+
+  const request = (method, params) => {
+    const id = nextId++;
+    try {
+      window.parent.postMessage({ jsonrpc: "2.0", id, method, params }, "*");
+    } catch (e) {
+      return Promise.reject(e);
+    }
+    return new Promise((resolve, reject) => {
+      pending.set(id, { resolve, reject });
+    });
+  };
+
+  // Renders product cards if sc carries a non-empty products array; does
+  // nothing otherwise (never clears an already-rendered view).
+  const tryRenderProducts = (sc) => {
+    const products = sc && Array.isArray(sc.products)
+      ? sc.products.filter((p) => p && typeof p === "object")
+      : [];
+    if (products.length === 0) return;
+    render(products);
+  };
+
   window.addEventListener("message", (event) => {
     try {
       // Only trust messages coming from the hosting frame.
       if (event.source !== window.parent) return;
       const msg = event.data;
       if (!msg || typeof msg !== "object" || msg.jsonrpc !== "2.0") return;
-      if (msg.method !== "ui/notifications/tool-result") return;
 
-      const sc = msg.params && msg.params.structuredContent;
-      const products = sc && Array.isArray(sc.products)
-        ? sc.products.filter((p) => p && typeof p === "object")
-        : [];
-      if (products.length === 0) {
-        empty();
+      // Responses to our own requests (e.g. the ui/initialize result).
+      if (msg.id !== undefined && pending.has(msg.id)) {
+        const p = pending.get(msg.id);
+        pending.delete(msg.id);
+        if (msg.error) p.reject(msg.error);
+        else p.resolve(msg.result);
         return;
       }
-      render(products);
+
+      if (msg.method === "ui/notifications/tool-result") {
+        const params = msg.params || {};
+        const sc = params.structuredContent
+          || (params.toolResult && params.toolResult.structuredContent);
+        const products = sc && Array.isArray(sc.products)
+          ? sc.products.filter((p) => p && typeof p === "object")
+          : [];
+        if (products.length === 0) {
+          empty();
+          return;
+        }
+        render(products);
+      }
+      // ui/notifications/tool-input and anything else: ignore.
     } catch (e) {
       // Never throw: a bad message must not break the widget.
       try { empty(); } catch (ignored) {}
     }
   });
+
+  // Initiate the handshake on load. Some hosts may also replay the triggering
+  // tool call's result inside the initialize response, so check for products
+  // there too (defensively; an empty result must not clear the view).
+  request("ui/initialize", { appCapabilities: { availableDisplayModes: ["inline"] } })
+    .then((result) => {
+      if (!result || typeof result !== "object") return;
+      tryRenderProducts(result.structuredContent
+        || (result.toolResult && result.toolResult.structuredContent));
+    })
+    .catch(() => {}); // a failed handshake must not break the widget
 
   empty();
 })();

@@ -241,6 +241,56 @@ func TestWidgetResourceReadable(t *testing.T) {
 	}
 }
 
+// The resource's _meta must declare the widget's serving domain and CSP so
+// hosts may frame it and load its product images.
+func TestWidgetResourceDeclaresCSP(t *testing.T) {
+	sess := connect(t)
+
+	rr, err := sess.ReadResource(context.Background(), &mcp.ReadResourceParams{
+		URI: tools.WidgetResourceURI,
+	})
+	if err != nil {
+		t.Fatalf("read resource: %v", err)
+	}
+	if len(rr.Contents) != 1 {
+		t.Fatalf("got %d contents, want 1", len(rr.Contents))
+	}
+
+	raw, err := json.Marshal(rr.Contents[0].Meta)
+	if err != nil {
+		t.Fatalf("marshal resource meta: %v", err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(raw, &m); err != nil {
+		t.Fatalf("unmarshal resource meta: %v", err)
+	}
+	ui, ok := m["ui"].(map[string]any)
+	if !ok {
+		t.Fatalf("resource meta has no ui object: %s", raw)
+	}
+	if got := ui["domain"]; got != tools.WidgetDomain {
+		t.Errorf("resource meta ui.domain = %v, want %q", got, tools.WidgetDomain)
+	}
+	csp, ok := ui["csp"].(map[string]any)
+	if !ok {
+		t.Fatalf("resource meta ui has no csp object: %s", raw)
+	}
+	domains, ok := csp["resourceDomains"].([]any)
+	if !ok {
+		t.Fatalf("ui.csp has no resourceDomains array: %s", raw)
+	}
+	var found bool
+	for _, d := range domains {
+		if d == "https://images.demo-outdoor.example" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("ui.csp.resourceDomains %v does not include https://images.demo-outdoor.example", domains)
+	}
+}
+
 func TestUnknownToolIsRejected(t *testing.T) {
 	sess := connect(t)
 
