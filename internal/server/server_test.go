@@ -165,6 +165,58 @@ func TestRenderWidgetUnknownID(t *testing.T) {
 	}
 }
 
+// Tool-level _meta must survive tools/list: hosts like ChatGPT decide whether
+// a tool has a UI component from the tool's meta, not from result meta.
+func TestRenderWidgetToolDeclaresUI(t *testing.T) {
+	sess := connect(t)
+
+	list, err := sess.ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("list tools: %v", err)
+	}
+
+	var tool *mcp.Tool
+	for _, tl := range list.Tools {
+		if tl.Name == "render_products_widget" {
+			tool = tl
+			break
+		}
+	}
+	if tool == nil {
+		t.Fatal("render_products_widget missing from tools/list")
+	}
+
+	raw, err := json.Marshal(tool.Meta)
+	if err != nil {
+		t.Fatalf("marshal tool meta: %v", err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(raw, &m); err != nil {
+		t.Fatalf("unmarshal tool meta: %v", err)
+	}
+	ui, ok := m["ui"].(map[string]any)
+	if !ok {
+		t.Fatalf("tool meta has no ui object: %s", raw)
+	}
+	if got := ui["resourceUri"]; got != tools.WidgetResourceURI {
+		t.Errorf("tool meta ui.resourceUri = %v, want %q", got, tools.WidgetResourceURI)
+	}
+	// ChatGPT's compatibility alias for the same association.
+	if got := m["openai/outputTemplate"]; got != tools.WidgetResourceURI {
+		t.Errorf("tool meta openai/outputTemplate = %v, want %q", got, tools.WidgetResourceURI)
+	}
+	// ChatGPT must see the widget as accessible and get its progress strings.
+	if got := m["openai/widgetAccessible"]; got != true {
+		t.Errorf("tool meta openai/widgetAccessible = %v, want true", got)
+	}
+	if got := m["openai/toolInvocation/invoking"]; got != tools.WidgetInvoking {
+		t.Errorf("tool meta openai/toolInvocation/invoking = %v, want %q", got, tools.WidgetInvoking)
+	}
+	if got := m["openai/toolInvocation/invoked"]; got != tools.WidgetInvoked {
+		t.Errorf("tool meta openai/toolInvocation/invoked = %v, want %q", got, tools.WidgetInvoked)
+	}
+}
+
 func TestWidgetResourceReadable(t *testing.T) {
 	sess := connect(t)
 

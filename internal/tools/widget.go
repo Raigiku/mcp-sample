@@ -19,6 +19,14 @@ const WidgetMIMEType = "text/html;profile=mcp-app"
 // rather than mutating this one.
 const WidgetResourceURI = "ui://Raigiku/mcp-sample/products-v1.html"
 
+// Invocation progress strings the host shows around the tool call (pizzaz
+// pattern: "openai/toolInvocation/invoking" while the tool runs, "invoked" when
+// its result arrives). Exported so server.go and tests share one copy.
+const (
+	WidgetInvoking = "Loading products…"
+	WidgetInvoked  = "Products ready."
+)
+
 // widgetHTML is the widget document: a display-only page that listens for the
 // host's ui/notifications/tool-result postMessage and renders product cards.
 // Vanilla, no build step, no external requests except the product images.
@@ -267,7 +275,11 @@ func RenderProductsHandler(c *catalog.Catalog) mcp.ToolHandlerFor[RenderInput, R
 		out := RenderOutput{Store: c.StoreName, Products: products}
 		res := &mcp.CallToolResult{
 			// StructuredContent is left unset: the SDK populates it from out.
-			Meta: mcp.Meta{"ui": map[string]any{"resourceUri": WidgetResourceURI}},
+			Meta: mcp.Meta{
+				"ui":                             map[string]any{"resourceUri": WidgetResourceURI},
+				"openai/toolInvocation/invoking": WidgetInvoking,
+				"openai/toolInvocation/invoked":  WidgetInvoked,
+			},
 		}
 		return res, out, nil
 	}
