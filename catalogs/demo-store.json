@@ -1,0 +1,98 @@
+{
+  "name": "Demo Outdoor Gear",
+  "products": [
+    {
+      "id": "SKU-001",
+      "name": "Trail Runner Pro",
+      "description": "Lightweight trail running shoes with grippy Vibram outsole and rock plate.",
+      "category": "shoes",
+      "price": 129.99,
+      "currency": "USD",
+      "sizes": ["8", "9", "10", "11", "12"],
+      "in_stock": true,
+      "image_url": "https://images.demo-outdoor.example/trail-runner-pro.jpg",
+      "product_url": "https://demo-outdoor.example/products/trail-runner-pro"
+    },
+    {
+      "id": "SKU-002",
+      "name": "Summit Down Jacket",
+      "description": "800-fill-power down jacket, packs into its own pocket. Rated to -10°C.",
+      "category": "jackets",
+      "price": 249.0,
+      "currency": "USD",
+      "sizes": ["S", "M", "L", "XL"],
+      "in_stock": true,
+      "image_url": "https://images.demo-outdoor.example/summit-down-jacket.jpg",
+      "product_url": "https://demo-outdoor.example/products/summit-down-jacket"
+    },
+    {
+      "id": "SKU-003",
+      "name": "Merino Base Layer Top",
+      "description": "Lightweight 150gsm merino wool crew, moisture wicking and odor resistant.",
+      "category": "base-layers",
+      "price": 89.5,
+      "currency": "USD",
+      "sizes": ["S", "M", "L", "XL"],
+      "in_stock": true,
+      "image_url": "https://images.demo-outdoor.example/merino-base-top.jpg",
+      "product_url": "https://demo-outdoor.example/products/merino-base-layer-top"
+    },
+    {
+      "id": "SKU-004",
+      "name": "Ridgeline 45L Backpack",
+      "description": "Multi-day hiking pack with adjustable torso length and integrated rain cover.",
+      "category": "backpacks",
+      "price": 179.0,
+      "currency": "USD",
+      "in_stock": true,
+      "image_url": "https://images.demo-outdoor.example/ridgeline-45.jpg",
+      "product_url": "https://demo-outdoor.example/products/ridgeline-45l"
+    },
+    {
+      "id": "SKU-005",
+      "name": "Alpine Trekking Poles",
+      "description": "Pair of carbon fiber poles, quick-lock adjustment, cork grips.",
+      "category": "accessories",
+      "price": 74.99,
+      "currency": "USD",
+      "in_stock": false,
+      "image_url": "https://images.demo-outdoor.example/alpine-poles.jpg",
+      "product_url": "https://demo-outdoor.example/products/alpine-trekking-poles"
+    },
+    {
+      "id": "SKU-006",
+      "name": "Storm Shell Rain Jacket",
+      "description": "3-layer waterproof breathable shell, fully taped seams, 20k/20k rating.",
+      "category": "jackets",
+      "price": 199.0,
+      "currency": "USD",
+      "sizes": ["S", "M", "L", "XL", "XXL"],
+      "in_stock": true,
+      "image_url": "https://images.demo-outdoor.example/storm-shell.jpg",
+      "product_url": "https://demo-outdoor.example/products/storm-shell"
+    },
+    {
+      "id": "SKU-007",
+      "name": "Camp Mummy Sleeping Bag",
+      "description": "Synthetic mummy bag rated to 0°C, packs to 12L.",
+      "category": "camping",
+      "price": 139.0,
+      "currency": "USD",
+      "in_stock": true,
+      "image_url": "https://images.demo-outdoor.example/camp-mummy-bag.jpg",
+      "product_url": "https://demo-outdoor.example/products/camp-mummy-sleeping-bag"
+    },
+    {
+      "id": "SKU-008",
+      "name": "Trail Head Cap",
+      "description": "Quick-dry running cap with reflective trim and foldable brim.",
+      "category": "accessories",
+      "price": 29.0,
+      "currency": "USD",
+      "sizes": ["One Size"],
+      "in_stock": true,
+      "image_url": "https://images.demo-outdoor.example/trail-head-cap.jpg",
+      "product_url": "https://demo-outdoor.example/products/trail-head-cap"
+    }
+  ]
+}
