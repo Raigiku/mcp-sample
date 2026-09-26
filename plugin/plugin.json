@@ -1,0 +1,32 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "demo-outdoor-gear",
+  "version": "0.1.0",
+  "description": "Browse the Demo Outdoor Gear store catalog. Search products, filter by price, size, and stock with the AI's help, and view products as cards.",
+  "author": {
+    "name": "Raigiku",
+    "url": "https://github.com/Raigiku"
+  },
+  "repository": "https://github.com/Raigiku/mcp-sample",
+  "license": "MIT",
+  "keywords": ["ecommerce", "shopping", "catalog", "products"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Demo Outdoor Gear",
+        "shortDescription": "Search and browse the store's product catalog",
+        "longDescription": "Connects to the Demo Outdoor Gear MCP server to search the store's product catalog. The AI filters products by price, size, category, and stock, and displays matching products as cards.",
+        "developerName": "Raigiku",
+        "category": "Shopping",
+        "capabilities": ["Read"],
+        "websiteURL": "https://github.com/Raigiku/mcp-sample",
+        "defaultPrompt": [
+          "Show me what's in the store.",
+          "Find me a jacket under $200.",
+          "What's in stock in the accessories category?"
+        ],
+        "brandColor": "#2563eb"
+      }
+    }
+  }
+}
