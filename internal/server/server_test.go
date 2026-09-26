@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/Raigiku/mcp-sample/internal/catalog"
@@ -88,6 +89,103 @@ func TestSearchProductsReturnsFullCatalog(t *testing.T) {
 	}
 	if !ids["SKU-005"] {
 		t.Error("out-of-stock product SKU-005 missing from result; catalog must be complete")
+	}
+}
+
+func TestRenderWidgetReturnsResourceURI(t *testing.T) {
+	sess := connect(t)
+
+	res, err := sess.CallTool(context.Background(), &mcp.CallToolParams{
+		Name:      "render_products_widget",
+		Arguments: map[string]any{"product_ids": []string{"SKU-001", "SKU-006"}},
+	})
+	if err != nil {
+		t.Fatalf("call render_products_widget: %v", err)
+	}
+	if res.IsError {
+		t.Fatalf("unexpected error result: %v", res)
+	}
+
+	// Meta is map-shaped over the wire; check the UI pointer survives marshaling.
+	meta, err := json.Marshal(res.Meta)
+	if err != nil {
+		t.Fatalf("marshal meta: %v", err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(meta, &m); err != nil {
+		t.Fatalf("unmarshal meta: %v", err)
+	}
+	ui, ok := m["ui"].(map[string]any)
+	if !ok {
+		t.Fatalf("meta has no ui object: %s", meta)
+	}
+	if got := ui["resourceUri"]; got != tools.WidgetResourceURI {
+		t.Errorf("resourceUri = %v, want %q", got, tools.WidgetResourceURI)
+	}
+
+	raw, err := json.Marshal(res.StructuredContent)
+	if err != nil {
+		t.Fatalf("marshal structured content: %v", err)
+	}
+	var out tools.RenderOutput
+	if err := json.Unmarshal(raw, &out); err != nil {
+		t.Fatalf("unmarshal structured content: %v", err)
+	}
+	if out.Store != "Demo Outdoor Gear" {
+		t.Errorf("store = %q, want %q", out.Store, "Demo Outdoor Gear")
+	}
+	if len(out.Products) != 2 {
+		t.Fatalf("got %d products, want 2", len(out.Products))
+	}
+	if out.Products[0].ID != "SKU-001" || out.Products[1].ID != "SKU-006" {
+		t.Errorf("product ids = %s, %s; want SKU-001, SKU-006 (requested order)",
+			out.Products[0].ID, out.Products[1].ID)
+	}
+}
+
+func TestRenderWidgetUnknownID(t *testing.T) {
+	sess := connect(t)
+
+	res, err := sess.CallTool(context.Background(), &mcp.CallToolParams{
+		Name:      "render_products_widget",
+		Arguments: map[string]any{"product_ids": []string{"SKU-001", "NOPE"}},
+	})
+	// The SDK turns handler errors into error results carrying the message.
+	if err != nil {
+		t.Fatalf("unexpected transport error: %v", err)
+	}
+	if !res.IsError {
+		t.Fatal("unknown product id did not produce an error result")
+	}
+	if len(res.Content) == 0 {
+		t.Fatal("error result has no message for the model")
+	}
+	if text, ok := res.Content[0].(*mcp.TextContent); !ok || !strings.Contains(text.Text, "unknown product id(s)") {
+		t.Errorf("error content %v does not name the unknown ids", res.Content[0])
+	}
+}
+
+func TestWidgetResourceReadable(t *testing.T) {
+	sess := connect(t)
+
+	rr, err := sess.ReadResource(context.Background(), &mcp.ReadResourceParams{
+		URI: tools.WidgetResourceURI,
+	})
+	if err != nil {
+		t.Fatalf("read resource: %v", err)
+	}
+	if len(rr.Contents) != 1 {
+		t.Fatalf("got %d contents, want 1", len(rr.Contents))
+	}
+	c := rr.Contents[0]
+	if c.URI != tools.WidgetResourceURI {
+		t.Errorf("content uri = %q, want %q", c.URI, tools.WidgetResourceURI)
+	}
+	if c.MIMEType != tools.WidgetMIMEType {
+		t.Errorf("mimeType = %q, want %q", c.MIMEType, tools.WidgetMIMEType)
+	}
+	if !strings.Contains(c.Text, `<div id="root">`) {
+		t.Error("widget HTML missing <div id=\"root\">")
 	}
 }
 
