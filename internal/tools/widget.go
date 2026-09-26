@@ -17,7 +17,7 @@ const WidgetMIMEType = "text/html;profile=mcp-app"
 // WidgetResourceURI is the widget's resource URI. It doubles as the cache key:
 // hosts cache the HTML by URI, so a UI change ships as a new versioned URI
 // rather than mutating this one.
-const WidgetResourceURI = "ui://Raigiku/mcp-sample/products-v2.html"
+const WidgetResourceURI = "ui://Raigiku/mcp-sample/products-v3.html"
 
 // WidgetDomain is the HTTPS host serving the widget (the current ngrok tunnel).
 // Hosts require it in the resource's _meta so they may frame the resource.
@@ -204,13 +204,15 @@ const widgetHTML = `<!DOCTYPE html>
   };
 
   // Renders product cards if sc carries a non-empty products array; does
-  // nothing otherwise (never clears an already-rendered view).
+  // nothing otherwise (never clears an already-rendered view). Returns true
+  // when something was rendered, false otherwise.
   const tryRenderProducts = (sc) => {
     const products = sc && Array.isArray(sc.products)
       ? sc.products.filter((p) => p && typeof p === "object")
       : [];
-    if (products.length === 0) return;
+    if (products.length === 0) return false;
     render(products);
+    return true;
   };
 
   window.addEventListener("message", (event) => {
@@ -259,6 +261,45 @@ const widgetHTML = `<!DOCTYPE html>
         || (result.toolResult && result.toolResult.structuredContent));
     })
     .catch(() => {}); // a failed handshake must not break the widget
+
+  // --- ChatGPT compatibility path ---
+  // ChatGPT exposes the tool result via window.openai globals rather than the
+  // MCP Apps notifications; the globals appear asynchronously after load, so
+  // poll briefly (pattern from OpenAI's own useOpenAiGlobal hook).
+  const readOpenAiOutput = () => {
+    try {
+      const out = window.openai && window.openai.toolOutput;
+      if (!out) return undefined;
+      // toolOutput may be the CallToolResult ({structuredContent: ...}) or the
+      // structured content itself.
+      return out.structuredContent || out;
+    } catch (e) {
+      return undefined;
+    }
+  };
+
+  let openAiTimer = null;
+  let pollsLeft = 40;
+  const stopOpenAiPoll = () => {
+    if (openAiTimer !== null) {
+      window.clearInterval(openAiTimer);
+      openAiTimer = null;
+    }
+  };
+  const pollOpenAi = () => {
+    try {
+      const sc = readOpenAiOutput();
+      if (sc !== undefined && tryRenderProducts(sc)) {
+        stopOpenAiPoll(); // rendered once: done polling
+        return;
+      }
+    } catch (e) {
+      stopOpenAiPoll(); // never throw
+      return;
+    }
+    if (--pollsLeft <= 0) stopOpenAiPoll(); // exhausted: give up quietly
+  };
+  openAiTimer = window.setInterval(pollOpenAi, 250);
 
   empty();
 })();
