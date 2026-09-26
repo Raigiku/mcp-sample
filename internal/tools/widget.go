@@ -17,7 +17,7 @@ const WidgetMIMEType = "text/html;profile=mcp-app"
 // WidgetResourceURI is the widget's resource URI. It doubles as the cache key:
 // hosts cache the HTML by URI, so a UI change ships as a new versioned URI
 // rather than mutating this one.
-const WidgetResourceURI = "ui://Raigiku/mcp-sample/products-v1.html"
+const WidgetResourceURI = "ui://Raigiku/mcp-sample/products-v2.html"
 
 // WidgetDomain is the HTTPS host serving the widget (the current ngrok tunnel).
 // Hosts require it in the resource's _meta so they may frame the resource.
